@@ -10,44 +10,14 @@ export const runtime = "edge";
 
 const labels = ["A", "B", "C", "D"];
 
-export async function GET(request: Request) {
+export function GET(request: Request) {
   const url = new URL(request.url);
   const problem = decodeProblem(url.searchParams.get("problem"));
-  const geist = await loadGeist();
 
   return new ImageResponse(<OgCard problem={problem} />, {
     width: 1200,
     height: 630,
-    fonts: [
-      {
-        name: "Geist",
-        data: geist,
-        weight: 400,
-        style: "normal",
-      },
-      {
-        name: "Geist",
-        data: geist,
-        weight: 600,
-        style: "normal",
-      },
-      {
-        name: "Geist",
-        data: geist,
-        weight: 800,
-        style: "normal",
-      },
-    ],
   });
-}
-
-function loadGeist() {
-  return fetch(
-    new URL(
-      "../../../node_modules/next/dist/compiled/@vercel/og/Geist-Regular.ttf",
-      import.meta.url,
-    ),
-  ).then((response) => response.arrayBuffer());
 }
 
 function OgCard({ problem }: { problem: SharedProblem | null }) {
@@ -61,7 +31,7 @@ function OgCard({ problem }: { problem: SharedProblem | null }) {
         padding: "54px 70px",
         color: "#151515",
         background: "#ffffff",
-        fontFamily: "Geist, Arial, sans-serif",
+        fontFamily: "geist, Arial, sans-serif",
       }}
     >
       <div
