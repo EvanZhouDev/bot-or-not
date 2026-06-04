@@ -1,0 +1,27 @@
+{
+  "name": "bot-or-not",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "biome check app components data lib scripts README.md biome.json package.json next.config.ts tsconfig.json",
+    "format": "biome format --write app components data lib scripts README.md biome.json package.json next.config.ts tsconfig.json",
+    "generate:corpus": "node scripts/generate-corpus.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  }
+}
