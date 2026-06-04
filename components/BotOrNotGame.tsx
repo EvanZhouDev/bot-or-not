@@ -76,13 +76,11 @@ export function BotOrNotGame() {
   );
   const [storageReady, setStorageReady] = useState(false);
   const consumedSharedProblemRef = useRef(false);
+  const resumeCategoryFilterRef = useRef<CategoryFilter>("all");
+  const skipNextSharedNullStartRef = useRef(false);
 
   const filteredItems = useMemo(() => {
-    if (categoryFilter === "all") {
-      return allItems;
-    }
-
-    return allItems.filter((item) => item.categoryId === categoryFilter);
+    return itemsForCategoryFilter(categoryFilter);
   }, [categoryFilter]);
 
   const stats = statsByCategory[categoryFilter];
@@ -134,6 +132,11 @@ export function BotOrNotGame() {
       return;
     }
 
+    if (skipNextSharedNullStartRef.current) {
+      skipNextSharedNullStartRef.current = false;
+      return;
+    }
+
     if (sharedProblem) {
       const sharedCategoryItems = allItems.filter(
         (item) => item.categoryId === sharedProblem.problem.c,
@@ -165,9 +168,8 @@ export function BotOrNotGame() {
   useEffect(() => {
     const storedStats = readStoredStatsByCategory();
     const storedGuide = readStoredGuide();
-    const storedCategory = consumedSharedProblemRef.current
-      ? null
-      : readStoredCategoryFilter();
+    const storedCategory = readStoredCategoryFilter();
+    resumeCategoryFilterRef.current = resumeCategoryFilter(storedCategory);
 
     if (storedStats) {
       setStatsByCategory(storedStats);
@@ -177,7 +179,7 @@ export function BotOrNotGame() {
       setShowGuide(storedGuide);
     }
 
-    if (storedCategory) {
+    if (!consumedSharedProblemRef.current && storedCategory) {
       setCategoryFilter(storedCategory);
     }
 
@@ -232,6 +234,11 @@ export function BotOrNotGame() {
   }
 
   function nextPuzzle() {
+    if (sharedProblem) {
+      resumeAfterSharedProblem();
+      return;
+    }
+
     if (queue.length === 0) {
       return;
     }
@@ -243,6 +250,21 @@ export function BotOrNotGame() {
     setQueue(nextQueue);
     setQueueIndex(nextIndex);
     setPuzzle(makePuzzle(nextItem));
+    setSelectedOptionId(null);
+    setShareStatus("idle");
+  }
+
+  function resumeAfterSharedProblem() {
+    const resumeFilter = resumeCategoryFilterRef.current;
+    const nextQueue = shuffle(itemsForCategoryFilter(resumeFilter));
+    const nextPuzzle = nextQueue[0] ? makePuzzle(nextQueue[0]) : null;
+
+    skipNextSharedNullStartRef.current = true;
+    setSharedProblem(null);
+    setCategoryFilter(resumeFilter);
+    setQueue(nextQueue);
+    setQueueIndex(0);
+    setPuzzle(nextPuzzle);
     setSelectedOptionId(null);
     setShareStatus("idle");
   }
@@ -742,6 +764,18 @@ function makeDefaultStatsByCategory(): StatsByCategory {
   ) as StatsByCategory;
 }
 
+function itemsForCategoryFilter(categoryFilter: CategoryFilter) {
+  if (categoryFilter === "all") {
+    return allItems;
+  }
+
+  return allItems.filter((item) => item.categoryId === categoryFilter);
+}
+
+function resumeCategoryFilter(storedCategory: CategoryFilter | null) {
+  return storedCategory && storedCategory !== "all" ? storedCategory : "all";
+}
+
 function readStoredStatsByCategory() {
   if (typeof window === "undefined") {
     return null;
@@ -844,9 +878,21 @@ function readStoredCategoryFilter() {
   }
 
   try {
-    return normalizeCategoryFilter(
-      window.localStorage.getItem(lastCategoryStorageKey),
-    );
+    const value = window.localStorage.getItem(lastCategoryStorageKey);
+
+    return normalizeCategoryFilter(value) ?? normalizeCategoryFilterJson(value);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCategoryFilterJson(value: string | null) {
+  if (value === null) {
+    return null;
+  }
+
+  try {
+    return normalizeCategoryFilter(JSON.parse(value) as unknown);
   } catch {
     return null;
   }
